@@ -35,20 +35,46 @@
             line-height: 1;
         }
         @media print {
+            /* Basic A4 page setup */
+            @page {
+                size: A4 portrait; /* Set page size to A4 portrait */
+                margin: 1cm; /* Set default margins for print */
+            }
+
             .no-print {
                 display: none !important;
             }
             body {
                 background-color: #ffffff;
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact; /* Ensure background colors and images are printed */
+                print-color-adjust: exact;
             }
             .container {
                 box-shadow: none;
                 margin: 0;
                 padding: 0;
             }
+            /* Adjust chart container height for print to auto to prevent cropping */
             .chart-container {
-                height: 250px;
-                max-height: 300px;
+                height: auto !important;
+                max-height: none !important;
+            }
+            /* Ensure text colors are maintained in print */
+            .text-gray-700, .text-teal-600, .text-gray-600, .text-teal-500, .text-red-500, .text-gray-500 {
+                color: #333333 !important; /* Darker color for readability */
+            }
+            /* Specific adjustments for layout to fit A4 if needed, e.g., grid to block */
+            main.grid {
+                display: block; /* Change grid to block for simpler printing flow */
+            }
+            main.grid > div {
+                width: 100%;
+                margin-bottom: 1.5rem; /* Add some margin between sections for readability */
+            }
+            .lg\:col-span-3, .md\:col-span-2 {
+                grid-column: auto !important; /* Reset grid spans */
             }
         }
     </style>
@@ -95,8 +121,7 @@
                 </div>
             </div>
             <div class="flex justify-center mt-6 space-x-4">
-                <button id="calculateBtn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-300">Prikaži Poročilo</button>
-                <button id="printBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-300">Izvozi v PDF & Pošlji podatke</button>
+                <button id="calculateAndPrintBtn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-300">Prikaži Poročilo</button>
             </div>
         </section>
 
@@ -187,10 +212,7 @@
 
         <footer class="text-center mt-12 py-6 border-t border-gray-200">
             <p class="text-sm text-gray-500 mb-2">Vaše podatke bomo izključno uporabili samo za namen informativne ponudbe</p>
-            <img src="https://placehold.co/150x50/f0f4f8/0d9488?text=OMNISEV%20LOGO" alt="OMNISEV Logo" class="mx-auto h-12">
-            <!-- Fallback for image loading: You can replace 'https://placehold.co/150x50/f0f4f8/0d9488?text=OMNISEV%20LOGO' with the actual URL if it becomes available -->
-            <!-- If the actual URL is available, use this: -->
-            <!-- <img src="For signature.png" alt="OMNISEV Logo" class="mx-auto h-12" onerror="this.onerror=null;this.src='https://placehold.co/150x50/f0f4f8/0d9488?text=OMNISEV%20LOGO';"> -->
+            <img src="For signature.png" alt="© Omnisev d.o.o." class="mx-auto h-12" onerror="this.onerror=null;this.src='https://placehold.co/150x50/f0f4f8/0d9488?text=%C2%A9%20Omnisev%20d.o.o.';">
         </footer>
 
     </div>
@@ -271,7 +293,7 @@
                 return lines.filter(line => line.length > 0);
             }
 
-            const calculateReport = () => {
+            const calculateAndPrintReport = () => {
                 const customerName = document.getElementById('customerName').value;
                 const customerAddress = document.getElementById('customerAddress').value;
                 const customerPostalCode = document.getElementById('customerPostalCode').value;
@@ -383,8 +405,7 @@
                                         weight: 'bold', 
                                         size: 14 
                                     },
-                                    // Add clip: false to prevent labels from being cut off
-                                    clip: false 
+                                    clip: false /* Prevents labels from being cut off if they extend beyond chart area */
                                 }
                             }
                         }
@@ -429,53 +450,18 @@
                 // Hide input section and show display section
                 document.getElementById('inputSection').classList.add('hidden');
                 document.getElementById('customerDetailsDisplay').classList.remove('hidden');
-            };
 
-            const sendDataAndPrint = () => {
-                const customerName = document.getElementById('customerName').value;
-                const customerAddress = document.getElementById('customerAddress').value;
-                const customerPostalCode = document.getElementById('customerPostalCode').value;
-                const customerPhone = document.getElementById('customerPhone').value;
-                const customerEmail = document.getElementById('customerEmail').value;
-                const monthlyCost = parseFloat(document.getElementById('monthlyCostInput').value) || 0;
-                const selfSufficiencyRate = parseFloat(document.getElementById('selfSufficiencyInput').value) || 0;
-
-                const annualCostBefore = monthlyCost * 12;
-                const thirtyYearCostBefore = annualCostBefore * 30;
-                const annualSavings = (monthlyCost * 12) * (selfSufficiencyRate / 100);
-                const thirtyYearSavings = annualSavings * 30;
-
-                let emailBody = `Podatki o stranki in izračunu sončne elektrarne:\n\n`;
-                emailBody += `Ime stranke: ${customerName}\n`;
-                emailBody += `Naslov: ${customerAddress}\n`;
-                emailBody += `Poštna številka: ${customerPostalCode}\n`;
-                emailBody += `Telefon: ${customerPhone}\n`;
-                emailBody += `E-pošta: ${customerEmail}\n\n`;
-                emailBody += `--- Finančni Podatki ---\n`;
-                emailBody += `Trenutna mesečna poraba: ${monthlyCost.toFixed(0)}€\n`;
-                emailBody += `Stopnja samozadostnosti: ${selfSufficiencyRate.toFixed(0)}%\n`;
-                emailBody += `Letni prihranek: ${annualSavings.toFixed(0)}€\n`;
-                emailBody += `Prihranek v 30.letih: ${thirtyYearSavings.toFixed(0)}€\n`;
-                emailBody += `\n*Opomba: Izračuni so informativne narave in ne vključujejo inflacije ali spreminjajočih se cen energije.\n\n`;
-                emailBody += `V naslednjem koraku vas bo kontaktiral naš komercialist Fredi Donoša m-040 458 834, ki vam bo tudi pripravil informativno ponudbo in opravil strokoven ogled.`;
-
-
-                const emailSubject = `Podatki o stranki: ${customerName} - Sončna elektrarna`;
-                const mailtoLink = `mailto:fredidonosa@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-
-                window.open(mailtoLink, '_blank'); 
-                
+                // Trigger print
                 setTimeout(() => {
                     window.print();
                 }, 500); 
             };
 
-            document.getElementById('calculateBtn').addEventListener('click', calculateReport);
-            document.getElementById('printBtn').addEventListener('click', sendDataAndPrint);
-
-            // Initial calculation to set up the default view if needed, but keep input visible
-            // For now, let's keep the input section visible on initial load.
-            // calculateReport(); // This line is commented out to keep inputs visible on load
+            document.getElementById('calculateAndPrintBtn').addEventListener('click', calculateAndPrintReport);
+            
+            // On initial load, keep inputs visible, do not trigger print
+            // You might want to call calculateAndPrintReport() here if you want it to print on load,
+            // but for typical usage, it's better to wait for user interaction.
         });
     </script>
 
